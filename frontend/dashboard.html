@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <div class="form-box dashboard-box">
+            <h1>My Dashboard</h1>
+            <p class="subtitle">Welcome to your account!</p>
+
+            <div id="userInfo">
+                Loading your account...
+            </div>
+
+            <button id="logoutBtn">Logout</button>
+        </div>
+    </div>
+
+    <script>
+        async function loadDashboard() {
+            try {
+                const response = await fetch("/dashboard");
+
+                if (response.status === 401) {
+                    window.location.href = "/login.html";
+                    return;
+                }
+
+                if (!response.ok) {
+                    document.getElementById("userInfo").textContent =
+                        "Could not load your account.";
+                    return;
+                }
+
+                const user = await response.json();
+
+                const userInfo = document.getElementById("userInfo");
+                userInfo.className = "user-details";
+                userInfo.textContent =
+                    `User ID: ${user.user_id}\n` +
+                    `Username: ${user.username}\n` +
+                    `Email: ${user.email}`;
+
+            } catch (error) {
+                document.getElementById("userInfo").textContent =
+                    "Server connection failed.";
+                console.error(error);
+            }
+        }
+
+        document.getElementById("logoutBtn").addEventListener("click", async () => {
+            try {
+                const response = await fetch("/logout", {
+                    method: "POST"
+                });
+
+                if (response.ok) {
+                    window.location.href = "/login.html";
+                } else {
+                    alert("Logout failed. Please try again.");
+                }
+            } catch (error) {
+                console.error("Logout error:", error);
+                alert("Could not connect to the server.");
+            }
+        });
+
+        loadDashboard();
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,35 @@
+stages:
+  - build
+
+build-and-push:
+  stage: build
+  image: docker:27
+  services:
+    - name: docker:27-dind
+      alias: docker
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_TLS_VERIFY: "1"
+    DOCKER_CERT_PATH: "$DOCKER_TLS_CERTDIR/client"
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" -u "$CI_REGISTRY_USER" --password-stdin
+  script:
+    - |
+      for service in backend1 backend2; do
+        docker build -t "$CI_REGISTRY_IMAGE/$service:$CI_COMMIT_SHORT_SHA" "./$service"
+        docker push "$CI_REGISTRY_IMAGE/$service:$CI_COMMIT_SHORT_SHA"
+        if [ "$CI_COMMIT_BRANCH" = "$CI_DEFAULT_BRANCH" ]; then
+          docker tag "$CI_REGISTRY_IMAGE/$service:$CI_COMMIT_SHORT_SHA" "$CI_REGISTRY_IMAGE/$service:latest"
+          docker push "$CI_REGISTRY_IMAGE/$service:latest"
+        fi
+      done
+    - |
+      docker build -t "$CI_REGISTRY_IMAGE/nginx:$CI_COMMIT_SHORT_SHA" -f nginx/Dockerfile .
+      docker push "$CI_REGISTRY_IMAGE/nginx:$CI_COMMIT_SHORT_SHA"
+      if [ "$CI_COMMIT_BRANCH" = "$CI_DEFAULT_BRANCH" ]; then
+        docker tag "$CI_REGISTRY_IMAGE/nginx:$CI_COMMIT_SHORT_SHA" "$CI_REGISTRY_IMAGE/nginx:latest"
+        docker push "$CI_REGISTRY_IMAGE/nginx:latest"
+      fi
+  rules:
+    - if: '$CI_COMMIT_BRANCH'
