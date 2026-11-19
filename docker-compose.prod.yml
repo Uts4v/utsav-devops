@@ -53,7 +53,7 @@ services:
 
 volumes:
   postgres_data:
-
+iko0t
 networks:
   app-network:
     driver: bridge
