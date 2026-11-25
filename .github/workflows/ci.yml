@@ -11,7 +11,7 @@ permissions:
   packages: write
 
 jobs:
-  build-and-push:
+  build-scan-and-push:
     runs-on: ubuntu-latest
 
     steps:
@@ -28,29 +28,64 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push backend1
+      - name: Build backend1 image
         uses: docker/build-push-action@v6
         with:
           context: ./backend1
-          push: true
-          tags: |
-            ghcr.io/uts4v/utsav-devops-backend1:latest
-            ghcr.io/uts4v/utsav-devops-backend1:${{ github.sha }}
+          load: true
+          tags: utsav-backend1:${{ github.sha }}
 
-      - name: Build and push backend2
+      - name: Build backend2 image
         uses: docker/build-push-action@v6
         with:
           context: ./backend2
-          push: true
-          tags: |
-            ghcr.io/uts4v/utsav-devops-backend2:latest
-            ghcr.io/uts4v/utsav-devops-backend2:${{ github.sha }}
+          load: true
+          tags: utsav-backend2:${{ github.sha }}
 
-      - name: Build and push frontend
+      - name: Build frontend image
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
-          push: true
-          tags: |
-            ghcr.io/uts4v/utsav-devops-frontend:latest
-            ghcr.io/uts4v/utsav-devops-frontend:${{ github.sha }}
+          load: true
+          tags: utsav-frontend:${{ github.sha }}
+
+      - name: Scan backend1 image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: utsav-backend1:${{ github.sha }}
+          trivy-config: trivy.yaml
+          hide-progress: true
+
+      - name: Scan backend2 image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: utsav-backend2:${{ github.sha }}
+          trivy-config: trivy.yaml
+          skip-setup-trivy: true
+          hide-progress: true
+
+      - name: Scan frontend image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: utsav-frontend:${{ github.sha }}
+          trivy-config: trivy.yaml
+          skip-setup-trivy: true
+          hide-progress: true
+
+      - name: Tag and push images
+        run: |
+          docker tag utsav-backend1:${{ github.sha }} ghcr.io/uts4v/utsav-devops-backend1:latest
+          docker tag utsav-backend1:${{ github.sha }} ghcr.io/uts4v/utsav-devops-backend1:${{ github.sha }}
+          docker tag utsav-backend2:${{ github.sha }} ghcr.io/uts4v/utsav-devops-backend2:latest
+          docker tag utsav-backend2:${{ github.sha }} ghcr.io/uts4v/utsav-devops-backend2:${{ github.sha }}
+          docker tag utsav-frontend:${{ github.sha }} ghcr.io/uts4v/utsav-devops-frontend:latest
+          docker tag utsav-frontend:${{ github.sha }} ghcr.io/uts4v/utsav-devops-frontend:${{ github.sha }}
+          docker push ghcr.io/uts4v/utsav-devops-backend1:latest
+          docker push ghcr.io/uts4v/utsav-devops-backend1:${{ github.sha }}
+          docker push ghcr.io/uts4v/utsav-devops-backend2:latest
+          docker push ghcr.io/uts4v/utsav-devops-backend2:${{ github.sha }}
+          docker push ghcr.io/uts4v/utsav-devops-frontend:latest
+          docker push ghcr.io/uts4v/utsav-devops-frontend:${{ github.sha }}
