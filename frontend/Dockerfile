@@ -7,7 +7,13 @@ COPY . .
 # ---- Stage 2: final nginx image ----
 FROM nginx:alpine
 
-COPY --from=builder /site /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+RUN chown -R nginx:nginx /var/cache/nginx /usr/share/nginx/html \
+    && touch /var/run/nginx.pid \
+    && chown nginx:nginx /var/run/nginx.pid
 
-EXPOSE 80
+COPY --chown=nginx:nginx --from=builder /site /usr/share/nginx/html
+COPY --chown=nginx:nginx nginx.conf /etc/nginx/conf.d/default.conf
+
+USER nginx
+
+EXPOSE 8080
